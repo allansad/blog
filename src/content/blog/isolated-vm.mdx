@@ -1,0 +1,94 @@
+---
+title: 'isolated-vm과 zsh: segmentation fault 에러'
+description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec non dia'
+pubDate: 'Jul 02 2022'
+heroImage: '../../assets/images/te.jpg'
+category: 'Issue'
+tags: ['Issue']
+---
+
+## segmentation fault 에러 해결과정
+
+> isolated-vm을 사용한 유닛 테스트 코드에서 segmentation fault 에러가 발생하였고, 이 에러는 node.js 20.x 이상 버전에 있는 snapshot 기능과 isolated-vm과의 충돌 문제였습니다.
+
+바닐라코딩 17기 팀 프로젝트를 진행할 때 마주쳤던 에러입니다.
+
+프로젝트 특성상 사용자의 코드를 서버에서 실행해야 했었고, 이 과정에서 서버 안정성을 위해 사용자의 코드를 격리시켜야 했습니다.
+
+고민 끝에 저희 팀은 `isolated-vm`와 `Docker`를 이용하여 격리하기로 하였고, 당시 제가 맡은 작업은 사용자 코드를 `isolated-vm`으로 실행시키는 함수를 작성하는 것이였습니다.
+
+어렵지 않은 작업이였기에 저는 사용자의 코드를 입력받아 `isolated-vm`으로 실행시키는 함수를 작성하고 이 함수에 대한 유닛 테스트 코드를 작성하였습니다.
+
+### 유닛 테스트 코드 에러 발생
+
+```javascript
+describe('executeVmCode', () => {
+	it('유저 함수 코드가 정상적으로 실행되어야 한다.', async () => {
+		const userFunction = `
+      function userCode(a, b) {
+        return a + b;
+      }
+    `
+		const userFunctionCall = 'userCode(5, 2)'
+		const result = await executeVmCode(userFunction, userFunctionCall)
+
+		expect(result).toBe(7)
+	})
+
+	it('유저 함수 코드의 실행이 5초이상 지연되면 에러를 반환해야 한다.', async () => {
+		const userFunction = `
+      function userCode() {
+        while(true) {};
+       }
+    `
+		const userFunctionCall = 'userCode()'
+
+		await expect(executeVmCode(userFunction, userFunctionCall)).rejects.toHaveProperty(
+			'errorStackMessage'
+		)
+	}, 5000)
+})
+```
+
+테스트 코드는 `사용자의 코드가 정상적으로 실행되어야 한다`, `실행 후 5초간 반응이 없으면 에러를 반환한다.` 라는 단순한 로직이였는데, 애석하게도 테스트 실행 시 `zsh: segmentation fault`라는 알 수 없는 오류가 발생하였습니다.
+
+<img src='/src/assets/images/segmentation_fault.png' />
+
+지금까지 마주쳤던 에러는 적어도 어떤타입인지 알려줬는데 완전 처음보는 형태의 에러에 적잖이 당황했지만,
+
+애써 침착함을 유지하며 먼저 `segmentation fault` 에러에 대해 조사를 시작했습니다.
+
+### segmentation fault란?
+
+`segmentation fault`는 프로그램이 접근할 수 없는 메모리 영역에 접근하는 경우 발생합니다[^1].
+[^1]: [wikipedia](https://en.wikipedia.org/wiki/Segmentation_fault)
+
+또한 node.js에서 segmentation fault는 다음 세가지 상황 중 발생합니다[^2].
+[^2]: [httptoolkit.com](https://httptoolkit.com/blog/how-to-debug-node-segfaults/)
+
+1. 네이티브 에드온(c++ 에드온)을 직접 사용하거나 의존성 라이브러리가 네이티브 에드온을 포함하는 경우
+2. node.js객체의 내부 데이터중 비공개 데이터에 접근하는 경우
+3. node.js자체에 버그가 있는 경우
+
+다른 테스트는 정상 작동하였지만 `isolated-vm`을 사용한 테스트에서 에러가 발생한 상황을 미루어 보아, `isolated-vm`이 1번 또는 2번 행위를 하기 때문에 에러가 발생했을 것이라고 판단하였습니다.
+
+### 답은 가까이에 있었다.
+
+혹시 관련 이슈가 있을까 싶어 `isolated-vm` 깃허브 레포지토리에 들어가 봤고, 의외로 쉽게 해당 원인을 찾을 수 있었습니다.
+
+<img src='/src/assets/images/isolated-vm_repo.png' />
+
+문제의 원인은 **node.js의 snapshot기능**이였습니다.
+
+node.js 20.x 버전부터 도입된 snapshot기능과 `isolated-vm`의 충돌이 원인이였고, 다른 이슈와 맞물려 결과적으로 팀원과 협의하에 node.js를 18.20.16버전으로 바꾼 뒤 에러를 해결할 수 있었습니다.
+
+<img src='/src/assets/images/isolated-vm_complete.png' />
+
+### 회고
+
+이번 에러를 통해서 두가지를 깨달았습니다.
+
+1. 라이브러리를 사용할 땐 해당 문서를 꼼꼼히 읽어야 한다.
+2. 유닛 테스트 코드는 여러모로 도움이 된다.
+
+### Reference
