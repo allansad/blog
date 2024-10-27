@@ -80,7 +80,7 @@ describe('executeVmCode', () => {
 
 문제의 원인은 **node.js의 snapshot기능**이였습니다.
 
-node.js 20.x 버전부터 도입된 snapshot기능과 `isolated-vm`의 충돌이 원인이였고, 다른 이슈와 맞물려 결과적으로 팀원과 협의하에 node.js를 18.20.16버전으로 바꾼 뒤 에러를 해결할 수 있었습니다.
+node.js 20.x 버전부터 도입된 snapshot기능과 `isolated-vm`의 충돌이 원인이였고, 다른 이슈와 맞물려 결과적으로 팀원과 협의하에 **node.js 18.20.16 버전**으로 바꾼 뒤 에러를 해결할 수 있었습니다.
 
 <img src='/src/assets/images/isolated-vm_complete.png' />
 
