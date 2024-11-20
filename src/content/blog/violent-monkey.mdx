@@ -73,8 +73,9 @@ const englishUrl = englishLink.getAttribute('href')
 ### keydown 이벤트 만들기
 
 원하는 주소값을 얻었으니, 이제 keydown 이벤트만 추가하면 기능이 완성됩니다.
-저는 “" 키를 핫키로 설정했는데, 맥북에서는 같은 위치의 키가 한글 입력 상태일 때 "₩"로 변하기 때문에 두 키 모두 인식할 수 있도록 처리했습니다.
-addEventListener로 keydown이벤트를 등록하고,window.location.href`를 사용하여 영어 페이지로 이동하도록 만들었습니다.
+저는 “`" 키를 핫키로 설정했는데, 맥북에서는 같은 위치의 키가 한글 입력 상태일 때 "₩"로 변하기 때문에 두 키 모두 인식할 수 있도록 처리했습니다.
+
+`addEventListener`로 keydown 이벤트를 등록하고, `window.location.href`에 주소값을 할당하여 영어 페이지로 이동하도록 만들었습니다.
 
 ```javascript
 // ==UserScript==
